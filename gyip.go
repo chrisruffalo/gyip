@@ -136,8 +136,6 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 
 	// commands only need to execute if a command is found
 	if len(command) > 0 {
-		fmt.Printf("Setting command: %s\n", command)
-
 		// fake "round" robin which is just a random distribution
 		if command == "RR" && len(ips) > 1 {
 			chosenRecordIndex := rand.Intn(len(ips))
@@ -253,6 +251,18 @@ func main() {
 
 	// set the function being used to handle the dns questions
 	dns.HandleFunc(*domain, handleQuestions)
+
+	// for all other domains just return a not zone response
+	dns.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Compress = *compress
+
+		m.Rcode = dns.RcodeNotZone
+
+		// write back message
+		w.WriteMsg(m)
+	})
 
 	// based on options/config decide what protocols to provide
 	if *tcpOn {
