@@ -18,10 +18,16 @@ import (
 var (
 	domain   = flag.String("domain", "", "the hosting domain to provide authority/answers for")
 	port     = flag.String("port", "8053", "the port to bind the service to, defaults to 8053")
-	tcpOn    = flag.Bool("tcp", true, "provide service on port 8053/tcp, defaults to true")
-	udpOn    = flag.Bool("udp", true, "provide service on port 8053/udp, defaults to true")
-	compress = flag.Bool("compress", false, "compress replies")
+	tcpOff   = flag.Bool("tcp", false, "disable listening on TCP, defaults to false")
+	udpOff   = flag.Bool("udp", false, "disable listening on UDP, defaults to false")
+	compress = flag.Bool("compress", false, "compress replies, defaults to false")
 )
+
+func reverse(ips []net.IP) {
+	for i, j := 0, len(ips)-1; i < j; i, j = i+1, j-1 {
+		ips[i], ips[j] = ips[j], ips[i]
+	}
+}
 
 func isCommand(checkCommand string) bool {
 	// round robin
@@ -90,6 +96,12 @@ func parseIPs(addressString string) []net.IP {
 				}
 			}
 		}
+	}
+
+	// since we worked right to left we need to reverse the order before responding
+	// so that it maintains the left to right order we expect
+	if len(responses) > 0 {
+		reverse(responses)
 	}
 
 	return responses
@@ -170,14 +182,12 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 			message.Answer = append(message.Answer, rr)
 		}
 
-		if ipV6 != nil {
+		if q.Qtype == dns.TypeAAAA && ipV6 != nil {
 			rr = &dns.AAAA{
 				Hdr:  dns.RR_Header{Name: questionName, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0},
 				AAAA: ipV6,
 			}
-			if q.Qtype == dns.TypeAAAA {
-				message.Answer = append(message.Answer, rr)
-			}
+			message.Answer = append(message.Answer, rr)
 		}
 	}
 }
@@ -215,9 +225,6 @@ func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 
 	// write back message
 	w.WriteMsg(m)
-
-	// we will hang up when done
-	//w.Close()
 }
 
 func checkDomain(domain string) bool {
@@ -246,6 +253,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// can't do anything if both tcp and udp are off
+	if *tcpOff && *udpOff {
+		fmt.Print("The options tcpOff and udpOff cannot both be set at the same time.\n")
+		os.Exit(1)
+	}
+
 	// seed random number generator
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -258,6 +271,7 @@ func main() {
 		m.SetReply(r)
 		m.Compress = *compress
 
+		// just say that the response code is that the question isn't in the zone
 		m.Rcode = dns.RcodeNotZone
 
 		// write back message
@@ -265,10 +279,10 @@ func main() {
 	})
 
 	// based on options/config decide what protocols to provide
-	if *tcpOn {
+	if !*tcpOff {
 		go serve("tcp")
 	}
-	if *udpOn {
+	if !*udpOff {
 		go serve("udp")
 	}
 
