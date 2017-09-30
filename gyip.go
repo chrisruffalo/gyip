@@ -24,8 +24,9 @@ var (
 // 127.0.0.1.domain.tld - one address ([127.0.0.1])
 // 10.0.0.1.10.0.0.2.domain.tld - two addresses ([10.0.0.1,10.0.0.2])
 // 10.0.0.1,2134:0000:1234:4567:2468:1236:2444:2106 - two addresses ([10.0.0.1,2134:0000:1234:4567:2468:1236:2444:2106])
-// this thing is very very opportunistic it will parse the _first_ time it matches and it _will not_ see how "far" the match
-// goes.
+// this uses the "."s as delimeters and jumps to the next one when parsing
+// when it finds a match it discards that part of the string and keeps loking
+// a malformed ipv6 address will screw it up (it will never discard)
 func parseIPs(addressString string) []net.IP {
   // responses
   var responses []net.IP
