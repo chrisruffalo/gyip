@@ -22,12 +22,16 @@ var (
 
 func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg, q dns.Question) {
   var (
-    rr  dns.RR
-    str string
+    rr dns.RR
   )
 
   // parse current question
-  fmt.Printf("Question: %s\n", q.Name)
+  fmt.Printf("Question: %s", q.Name)
+  if(q.Qtype == dns.TypeA) {
+    fmt.Print(" (A)\n")
+  } else {
+    fmt.Print(" (AAAA)\n")
+  }
   questionName := q.Name
 
   // parse off the end domain and DO NOT REMOVE trailing dot
@@ -52,6 +56,11 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
     remainder = remainder[strings.Index(remainder, ".")+1:len(remainder)]
   }
 
+  if ip == nil {
+    message.Rcode = dns.RcodeNameError
+    return
+  }
+
   // set values based on presence of ipv4/ipv6
   var ip_v4 net.IP = nil
   var ip_v6 net.IP = nil
@@ -66,31 +75,19 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
       Hdr: dns.RR_Header{Name: questionName, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
       A: ip_v4,
     }
-  } else if q.Qtype == dns.TypeAAAA {
+    message.Answer = append(message.Answer, rr)
+  }
+
+  if ip_v6 != nil {
     rr = &dns.AAAA{
       Hdr: dns.RR_Header{Name: questionName, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0},
       AAAA: ip_v6,
     }
-  }
-
-  if ip == nil {
-    message.Rcode = dns.RcodeNameError
-  }
-
-  t := &dns.TXT{
-    Hdr: dns.RR_Header{Name: *domain, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0},
-    Txt: []string{str},
-  }
-
-  switch q.Qtype {
-  case dns.TypeTXT:
-    message.Answer = append(message.Answer, t)
-    message.Extra = append(message.Extra, rr)
-  default:
-    fallthrough
-  case dns.TypeA, dns.TypeAAAA:
-    message.Answer = append(message.Answer, rr)
-    message.Extra = append(message.Extra, t)
+    if q.Qtype == dns.TypeAAAA {
+      message.Answer = append(message.Answer, rr)
+    } else {
+      message.Extra = append(message.Extra, rr)
+    }
   }
 }
 
@@ -104,8 +101,6 @@ func serve(net_type string) {
 }
 
 func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
-  fmt.Print("new set of questions...\n")
-
   // setup outbound message
   m := new(dns.Msg)
   m.SetReply(r)
@@ -116,13 +111,17 @@ func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 
   // handle _each_ question
   for _, q := range m.Question {
-    respondToQuestion(w, r, m, q)
+    // only "answer" if question is A or AAAA
+    if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA {
+      respondToQuestion(w, r, m, q)
+    }
   }
 
   // write back message
   w.WriteMsg(m)
 
-  // w.Close() // Client closes connection
+  // we will hang up when done
+  //w.Close()
 }
 
 func check_domain(domain string) bool {
