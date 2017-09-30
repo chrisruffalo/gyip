@@ -1,7 +1,7 @@
 # GYIP - G(et) Y(our) IP
 
 ## Overview
-GYIP is a special DNS server that allows you to ask questions you already know the answer to. It provides a global way to resolve address you already know so that things like virtual hosts can work with name resolution. It is inspired by the **excellent** [nip.io](http://nip.io) and [xip.io][http://xip.io]. The main difference is that those services are based on PowerDNS and GYIP is a simple Go program. GYIP is more suited to sites and locations without their own DNS infrastructure. With GYIP you can create a DNS server for a specific domain that can easily answer DNS questions that point to an IP, a list of IPs, or with even other special conditions.
+GYIP is a special DNS server that allows you to ask questions you already know the answer to. It provides a global way to resolve address you already know so that things like virtual hosts can work with name resolution. It is inspired by the **excellent** [nip.io](http://nip.io) and [xip.io](http://xip.io). The main difference is that those services are based on PowerDNS and GYIP is a simple Go program. GYIP is more suited to sites and locations without their own DNS infrastructure. With GYIP you can create a DNS server for a specific domain that can easily answer DNS questions that point to an IP, a list of IPs, or with even other special conditions.
 
 In contrast to XIP and NIP: GYIP is _probably_ not production ready. What it provides in additional features is offset by the fact that it is new, untested, and not based on something that has been battle-hardened over years of testing in various environments.
 
