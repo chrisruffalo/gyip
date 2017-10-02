@@ -275,7 +275,7 @@ func main() {
 	flag.Parse()
 
 	if *domain == "" {
-		fmt.Print("At least one domain to host is required.")
+		fmt.Print("At least one domain to host is required.\n")
 		os.Exit(1)
 	}
 
