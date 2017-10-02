@@ -20,7 +20,7 @@ The resulting binary requires a domain option to function. This domain will be t
 ```
 
 ### Queries
-The questions GYIP you ask allow name resolution of IP addresses as subrecords in the domain.
+The questions you ask GYIP allow name resolution of IP addresses as subrecords in the domain. (All of the examples in this document assume the use of `gyip.io` as the hosting domain.)
 ```bash
 []$ dig -p 8053 127.0.0.1.gyip.io @localhost +short
 127.0.0.1
@@ -60,7 +60,7 @@ Address:	::1#8053
 
 ## Options
 The `gyip` command accepts several options:
-* **domain** - the domain that the server should respond to (required, no default)
+* **domain** - the domain that the server should respond to, can accept a single domain or comma-separated list of domains. (required, no default)
 * **port** - the port the DNS server should listen on. this applies to both TCP and UDP. (default: 8053)
 * **tcpOff** - set this option to turn off listening on the TCP protocol (default: false)
 * **udpOff** - set this option to turn off listening on the UDP protocol (default: false)
@@ -79,6 +79,11 @@ Turn TCP off:
 Compress responses:
 ```bash
 []$ ./gyip --domain gyip.io --compress
+```
+
+Multiple domains:
+```bash
+[]$ ./gyip --domain gyip.io,gyip.com,gyip.org
 ```
 
 ## Advanced Usage

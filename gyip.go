@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -15,12 +16,16 @@ import (
 	"github.com/miekg/dns"
 )
 
+// regexp expression to match hostnames
+var validHostnameRegexMatcher, _ = regexp.Compile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$")
+var servingDomains = []string{}
+
 var (
-	domain   = flag.String("domain", "", "the hosting domain to provide authority/answers for")
-	port     = flag.String("port", "8053", "the port to bind the service to, defaults to 8053")
-	tcpOff   = flag.Bool("tcp", false, "disable listening on TCP, defaults to false")
-	udpOff   = flag.Bool("udp", false, "disable listening on UDP, defaults to false")
-	compress = flag.Bool("compress", false, "compress replies, defaults to false")
+	domain   = flag.String("domain", "", "The hosting domain to provide authority/answers for. Can be a comma separated list of domains to host as well.")
+	port     = flag.String("port", "8053", "The port to bind the service to (tcp and udp), defaults to 8053")
+	tcpOff   = flag.Bool("tcpOff", false, "Disable listening on TCP, defaults to false")
+	udpOff   = flag.Bool("udpOff", false, "Disable listening on UDP, defaults to false")
+	compress = flag.Bool("compress", false, "Compress replies, defaults to false")
 )
 
 func reverse(ips []net.IP) {
@@ -114,17 +119,32 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 		ipV4 net.IP
 	)
 
+	questionName := q.Name
+
+	currentQuestionDomain := ""
+	// find current domain
+	for _, servedDomain := range servingDomains {
+		if strings.HasSuffix(questionName, servedDomain) {
+			currentQuestionDomain = servedDomain
+			break
+		}
+	}
+
+	// if we can't find the served domain that the question is asked for we need to exit (maybe error?)
+	if currentQuestionDomain == "" {
+		return
+	}
+
 	// parse current question
-	fmt.Printf("Question: %s", q.Name)
+	fmt.Printf("Question (%s): %s", currentQuestionDomain, q.Name)
 	if q.Qtype == dns.TypeA {
 		fmt.Print(" (A)\n")
 	} else {
 		fmt.Print(" (AAAA)\n")
 	}
-	questionName := q.Name
 
-	// parse off the end domain and traling dot
-	remainder := questionName[0 : len(questionName)-len(*domain)-1]
+	// parse off the end domain and trailing dot
+	remainder := questionName[0 : len(questionName)-len(currentQuestionDomain)-1]
 
 	// check for command
 	command := ""
@@ -192,15 +212,6 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 	}
 }
 
-func serve(netType string) {
-	addr := "0.0.0.0:" + *port
-	fmt.Printf("Starting %s server on address: %s ...\n", netType, addr)
-	server := &dns.Server{Addr: addr, Net: netType, TsigSecret: nil}
-	if err := server.ListenAndServe(); err != nil {
-		fmt.Printf("Failed to setup the "+netType+" server: %s\n", err.Error())
-	}
-}
-
 func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 	// setup outbound message
 	m := new(dns.Msg)
@@ -227,13 +238,30 @@ func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(m)
 }
 
+func serve(netType string) {
+	addr := "0.0.0.0:" + *port
+	fmt.Printf("Starting %s server on address: %s ...\n", netType, addr)
+	server := &dns.Server{Addr: addr, Net: netType, TsigSecret: nil}
+	if err := server.ListenAndServe(); err != nil {
+		fmt.Printf("Failed to setup the "+netType+" server: %s\n", err.Error())
+	}
+}
+
 func checkDomain(domain string) bool {
 	// the domain must not be empty
 	if domain == "" {
 		return false
 	}
 
-	// todo: check if is actually domain shaped
+	// we need to remove trailing '.' for the regexp to work
+	if string(domain[len(domain)-1]) == "." {
+		domain = domain[0 : len(domain)-1]
+	}
+
+	// not a valid domain name
+	if !validHostnameRegexMatcher.MatchString(domain) {
+		return false
+	}
 
 	// passes all checks
 	return true
@@ -246,10 +274,44 @@ func main() {
 	}
 	flag.Parse()
 
+	if *domain == "" {
+		fmt.Print("At least one domain to host is required.")
+		os.Exit(1)
+	}
+
+	// list of domains
+	domains := []string{}
+
+	// split the input domain list
+	fmt.Printf("Input domain string: \"%s\"\n", *domain)
+	domainStringSplit := strings.Split(*domain, ",")
+	for _, domainToCheck := range domainStringSplit {
+		// string needs contents or else we just go to next entry
+		if domainToCheck == "" {
+			continue
+		}
+		// if the string ends with a "," (as if a busted split) remove it
+		if string(domainToCheck[len(domainToCheck)-1]) != "," {
+			domainToCheck = domainToCheck[0 : len(domainToCheck)-1]
+		}
+		// trim whitespace
+		domainToCheck = strings.TrimSpace(domainToCheck)
+		// set up proper DNS end . (to keep in array, removed for check by validation function)
+		if string(domainToCheck[len(domainToCheck)-1]) != "." {
+			domainToCheck = domainToCheck + "."
+		}
+		// if the domain is ok keep it otherwise put some errors so that the end-user knows
+		if checkDomain(domainToCheck) {
+			domains = append(domains, domainToCheck)
+		} else {
+			fmt.Printf("The domain \"%s\" is not a valid domain and cannot be served\n", domainToCheck)
+		}
+	}
+
 	// check domain
-	if !checkDomain(*domain) {
+	if len(domains) < 1 {
 		// if a bad domain then exit
-		fmt.Printf("The given domain (%s) is not a valid domain.\n", *domain)
+		fmt.Print("No valid domains were given. The server will not start.\n")
 		os.Exit(1)
 	}
 
@@ -263,7 +325,15 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	// set the function being used to handle the dns questions
-	dns.HandleFunc(*domain, handleQuestions)
+	for _, servingDomain := range domains {
+		// log start of service
+		fmt.Printf("Providing service for domain: %s\n", servingDomain)
+		dns.HandleFunc(servingDomain, handleQuestions)
+	}
+	fmt.Print("(All other domains will receive NOZONE response)\n")
+
+	// save the list of domains
+	servingDomains = domains
 
 	// for all other domains just return a not zone response
 	dns.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
