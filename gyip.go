@@ -21,7 +21,8 @@ var validHostnameRegexMatcher, _ = regexp.Compile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-
 var servingDomains = []string{}
 
 var (
-	domain   = flag.String("domain", "", "The hosting domain to provide authority/answers for. Can be a comma separated list of domains to host as well.")
+	hosts    = flag.String("host", "0.0.0.0", "The host to bind to. Can be comma seperated list of hosts. Defaults to \"0.0.0.0\"")
+	domain   = flag.String("domain", "", "Required. The hosting domain to provide authority/answers for. Can be a comma separated list of domains to host as well.")
 	port     = flag.String("port", "8053", "The port to bind the service to (tcp and udp), defaults to 8053")
 	tcpOff   = flag.Bool("tcpOff", false, "Disable listening on TCP, defaults to false")
 	udpOff   = flag.Bool("udpOff", false, "Disable listening on UDP, defaults to false")
@@ -262,33 +263,13 @@ func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(m)
 }
 
-func serve(netType string) {
-	addr := "0.0.0.0:" + *port
+func serve(netType string, host string) {
+	addr := host + ":" + *port
 	fmt.Printf("Starting %s server on address: %s ...\n", netType, addr)
 	server := &dns.Server{Addr: addr, Net: netType, TsigSecret: nil}
 	if err := server.ListenAndServe(); err != nil {
 		fmt.Printf("Failed to setup the %s server: %s\n", netType, err.Error())
 	}
-}
-
-func checkDomain(domain string) bool {
-	// the domain must not be empty
-	if domain == "" {
-		return false
-	}
-
-	// we need to remove trailing '.' for the regexp to work
-	if string(domain[len(domain)-1]) == "." {
-		domain = domain[0 : len(domain)-1]
-	}
-
-	// not a valid domain name
-	if !validHostnameRegexMatcher.MatchString(domain) {
-		return false
-	}
-
-	// passes all checks
-	return true
 }
 
 func main() {
@@ -304,29 +285,12 @@ func main() {
 	}
 
 	// split the input domain list
-	domainStringSplit := strings.Split(*domain, ",")
-	for _, domainToCheck := range domainStringSplit {
-		// string needs contents or else we just go to next entry
-		if domainToCheck == "" {
-			continue
-		}
-		// if the string ends with a "," (as if a busted split) remove it
-		if string(domainToCheck[len(domainToCheck)-1]) == "," {
-			domainToCheck = domainToCheck[0 : len(domainToCheck)-1]
-		}
-		// trim whitespace
-		domainToCheck = strings.TrimSpace(domainToCheck)
-		// set up proper DNS end . (to keep in array, removed for check by validation function)
-		if string(domainToCheck[len(domainToCheck)-1]) != "." {
-			domainToCheck = domainToCheck + "."
-		}
-		// if the domain is ok keep it otherwise put some errors so that the end-user knows
-		if checkDomain(domainToCheck) {
-			servingDomains = append(servingDomains, domainToCheck)
-		} else {
-			fmt.Printf("The domain \"%s\" is not a valid domain and cannot be served\n", domainToCheck)
-		}
+	hostingDomains := splitHosts(*hosts)
+	if len(hostingDomains) < 1 {
+		hostingDomains = []string{"0.0.0.0"}
 	}
+
+	servingDomains = splitDomains(*domain)
 
 	// check domain
 	if len(servingDomains) < 1 {
@@ -367,11 +331,17 @@ func main() {
 	})
 
 	// based on options/config decide what protocols to provide
-	if !*tcpOff {
-		go serve("tcp")
-	}
-	if !*udpOff {
-		go serve("udp")
+	for _, host := range hostingDomains {
+		if strings.Index(host, ":") >= 0 {
+			host = "[" + host + "]"
+		}
+
+		if !*tcpOff {
+			go serve("tcp", host)
+		}
+		if !*udpOff {
+			go serve("udp", host)
+		}
 	}
 
 	// wait for os signal
@@ -379,4 +349,82 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	s := <-sig
 	fmt.Printf("Signal (%s) received, stopping\n", s)
+}
+
+func splitHosts(hostInput string) []string {
+	outputHosts := []string{}
+
+	hostStringSplit := strings.Split(hostInput, ",")
+	for _, hostToCheck := range hostStringSplit {
+		// if empty, continue
+		if hostToCheck == "" {
+			continue
+		}
+
+		// if ip, add to list
+		actualIP := net.ParseIP(hostToCheck)
+		if actualIP != nil {
+			outputHosts = append(outputHosts, actualIP.String())
+			continue
+		}
+
+		// if domain attempt resolution and, add to list
+		if checkDomain(hostToCheck) {
+			resolvedIPs, err := net.LookupIP(hostToCheck)
+			if err == nil {
+				for _, rIP := range resolvedIPs {
+					outputHosts = append(outputHosts, rIP.String())
+				}
+			}
+		}
+	}
+
+	return outputHosts
+}
+
+func splitDomains(domainInput string) []string {
+	outputDomains := []string{}
+
+	// split the input domain list
+	domainStringSplit := strings.Split(domainInput, ",")
+	for _, domainToCheck := range domainStringSplit {
+		// string needs contents or else we just go to next entry
+		if domainToCheck == "" {
+			continue
+		}
+		// trim whitespace
+		domainToCheck = strings.TrimSpace(domainToCheck)
+		// set up proper DNS end . (to keep in array, removed for check by validation function)
+		if string(domainToCheck[len(domainToCheck)-1]) != "." {
+			domainToCheck = domainToCheck + "."
+		}
+		// if the domain is ok keep it otherwise put some errors so that the end-user knows
+		if checkDomain(domainToCheck) {
+			outputDomains = append(outputDomains, domainToCheck)
+		} else {
+			fmt.Printf("The domain \"%s\" is not a valid domain and cannot be served\n", domainToCheck)
+		}
+	}
+
+	return outputDomains
+}
+
+func checkDomain(domain string) bool {
+	// the domain must not be empty
+	if domain == "" {
+		return false
+	}
+
+	// we need to remove trailing '.' for the regexp to work
+	if string(domain[len(domain)-1]) == "." {
+		domain = domain[0 : len(domain)-1]
+	}
+
+	// not a valid domain name
+	if !validHostnameRegexMatcher.MatchString(domain) {
+		return false
+	}
+
+	// passes all checks
+	return true
 }
