@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"reflect"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -13,6 +14,7 @@ func TestDomainCheck(t *testing.T) {
 		domain   string
 		expected bool
 	}{
+		{"", false},
 		{"google.com", true},
 		{"127.0.0.1.gyip.io", true},
 		{"fort@gyip.io", false},
@@ -90,6 +92,48 @@ func TestIPResponses(t *testing.T) {
 
 		if len(notFound) > 0 {
 			t.Errorf("The query '%s' for domain '%s' did not find expected elements %v (was %v, expected %v)", item.inputQuestion, item.questionDomain, notFound, actualFound, item.outputIPs)
+		}
+	}
+}
+
+func TestDomainSplit(t *testing.T) {
+	data := []struct {
+		input    string
+		expected []string
+	}{
+		{"", []string{}},
+		{"                                                         ", []string{}},
+		{"gyip.io", []string{"gyip.io."}},
+		{"gyip.io.", []string{"gyip.io."}},
+		{"gyip.io,,,,,dog.com", []string{"gyip.io.", "dog.com."}},
+		{" gyip.io , dog.com ", []string{"gyip.io.", "dog.com."}},
+		{"gyip.io,)))___adsfasdf____,dog.com ", []string{"gyip.io.", "dog.com."}},
+	}
+
+	for _, item := range data {
+		domainResult := splitDomains(item.input)
+		if !reflect.DeepEqual(item.expected, domainResult) {
+			t.Errorf("The domain input '%s' was not properly split (was: %v, expected %v)", item.input, domainResult, item.expected)
+		}
+	}
+}
+
+func TestHostSplit(t *testing.T) {
+	data := []struct {
+		input    string
+		expected []string
+	}{
+		{"", []string{"0.0.0.0"}},
+		{"10.0.0.1", []string{"10.0.0.1"}},
+		{"127.0.0.1,12.4.3.9,888.888.888.888,10.1.1.1", []string{"127.0.0.1", "12.4.3.9", "10.1.1.1"}},
+		{"127.0.0.1,12.4.3.9,888.888.888.888,10.1.1.1,0.0.0.0", []string{"0.0.0.0"}},
+		{"localhost", []string{"::1", "127.0.0.1"}},
+	}
+
+	for _, item := range data {
+		hostResult := splitHosts(item.input)
+		if !reflect.DeepEqual(item.expected, hostResult) {
+			t.Errorf("The host input '%s' was not properly split (was: %v, expected %v)", item.input, hostResult, item.expected)
 		}
 	}
 }

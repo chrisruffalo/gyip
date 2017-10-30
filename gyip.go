@@ -239,6 +239,7 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 	}
 }
 
+// provides the envelope to handle the dns response from the DNS server api
 func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 	// setup outbound message
 	m := new(dns.Msg)
@@ -286,10 +287,7 @@ func main() {
 
 	// split the input domain list
 	hostingDomains := splitHosts(*hosts)
-	if len(hostingDomains) < 1 {
-		hostingDomains = []string{"0.0.0.0"}
-	}
-
+	// and do the same for the domains
 	servingDomains = splitDomains(*domain)
 
 	// check domain
@@ -384,6 +382,11 @@ func splitHosts(hostInput string) []string {
 		}
 	}
 
+	// if no hosts found just bind to everything
+	if len(outputHosts) < 1 {
+		return []string{"0.0.0.0"}
+	}
+
 	return outputHosts
 }
 
@@ -393,12 +396,12 @@ func splitDomains(domainInput string) []string {
 	// split the input domain list
 	domainStringSplit := strings.Split(domainInput, ",")
 	for _, domainToCheck := range domainStringSplit {
+		// trim whitespace
+		domainToCheck = strings.TrimSpace(domainToCheck)
 		// string needs contents or else we just go to next entry
 		if domainToCheck == "" {
 			continue
 		}
-		// trim whitespace
-		domainToCheck = strings.TrimSpace(domainToCheck)
 		// set up proper DNS end . (to keep in array, removed for check by validation function)
 		if string(domainToCheck[len(domainToCheck)-1]) != "." {
 			domainToCheck = domainToCheck + "."
