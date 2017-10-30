@@ -364,6 +364,11 @@ func splitHosts(hostInput string) []string {
 		// if ip, add to list
 		actualIP := net.ParseIP(hostToCheck)
 		if actualIP != nil {
+			// if someone uses the literal 0.0.0.0 just ust that and stop parsing
+			if actualIP.String() == "0.0.0.0" {
+				return []string{"0.0.0.0"}
+			}
+
 			outputHosts = append(outputHosts, actualIP.String())
 			continue
 		}
