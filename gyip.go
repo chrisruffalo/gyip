@@ -21,8 +21,8 @@ var validHostnameRegexMatcher, _ = regexp.Compile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-
 var servingDomains = []string{}
 
 var (
-	hosts    = flag.String("host", "0.0.0.0", "The host to bind to. Can be comma seperated list of hosts. Defaults to \"0.0.0.0\"")
-	domain   = flag.String("domain", "", "Required. The hosting domain to provide authority/answers for. Can be a comma separated list of domains to host as well.")
+	hosts    = flag.String("host", "0.0.0.0", "The host to bind to. Can be a comma-seperated list of hosts. (Ex: \"--host 127.0.0.1,10.0.0.1\")")
+	domain   = flag.String("domain", "", "Required. The hosting domain to provide authority/answers for. Can be a comma-separated list of domains. (Ex: \"--domain gyip.io,gyip.net\")")
 	port     = flag.String("port", "8053", "The port to bind the service to (tcp and udp), defaults to 8053")
 	tcpOff   = flag.Bool("tcpOff", false, "Disable listening on TCP, defaults to false")
 	udpOff   = flag.Bool("udpOff", false, "Disable listening on UDP, defaults to false")
