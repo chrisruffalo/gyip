@@ -146,21 +146,31 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 		return nil
 	}
 
+	// default ttl for most situations (12hrs)
+	var ttl uint32 = 43200
+
 	// commands only need to execute if a command is found
 	if command != "" {
 		// fake "round" robin which is just a random distribution
 		if command == "RR" && len(ips) > 1 {
 			chosenRecordIndex := rand.Intn(len(ips))
 			ips = ips[chosenRecordIndex : chosenRecordIndex+1]
+			// set low ttl so this can change
+			ttl = 10
 		}
 
 		// simulate failure command
 		if command[0:1] == "F" {
-			i, _ := strconv.ParseInt(command[1:len(command)], 10, 32)
-			roll := rand.Intn(100)
-			// if the roll exceeds the threshold, then do not respond
-			if roll <= int(i) {
-				ips = []net.IP{}
+			i, err := strconv.ParseInt(command[1:len(command)], 10, 32)
+			// if the parse happens with an error we just resume operations as normal
+			if err == nil {
+				roll := rand.Intn(100)
+				// if the roll exceeds the threshold, then do not respond
+				if roll <= int(i) {
+					ips = []net.IP{}
+				}
+				// set low ttl so this can change
+				ttl = 10
 			}
 		}
 	}
@@ -181,7 +191,7 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 		// create a record for the given response
 		if questionType == dns.TypeA && ipV4 != nil {
 			rr = &dns.A{
-				Hdr: dns.RR_Header{Name: questionName, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
+				Hdr: dns.RR_Header{Name: questionName, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: ttl},
 				A:   ipV4,
 			}
 			records = append(records, rr)
@@ -189,7 +199,7 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 
 		if questionType == dns.TypeAAAA && ipV6 != nil {
 			rr = &dns.AAAA{
-				Hdr:  dns.RR_Header{Name: questionName, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0},
+				Hdr:  dns.RR_Header{Name: questionName, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: ttl},
 				AAAA: ipV6,
 			}
 			records = append(records, rr)

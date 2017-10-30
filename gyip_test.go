@@ -41,6 +41,7 @@ func TestIPResponses(t *testing.T) {
 		{dns.TypeA, "gyip.io", "alpha.domain.127.0.0.1.10.0.0.24.gyip.io", []string{"127.0.0.1", "10.0.0.24"}},
 		{dns.TypeA, "gyip.io", "domain.127.0.0.gyip.io", []string{}},
 		{dns.TypeA, "gyip.io", "really.long27.498.&.confusing.483.2383.3838.455.12.127.0.0.1.312.gyip.io", []string{"127.0.0.1"}},
+		{dns.TypeA, "gyip.io", "virthost10.10.1.1.1.gyip.io", []string{"10.1.1.1"}},
 		// IPV6
 		{dns.TypeAAAA, "gyip.io", "::1.gyip.io", []string{"::1"}},
 		{dns.TypeAAAA, "wrong.io", "::1.gyip.io", []string{}},
