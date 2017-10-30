@@ -167,7 +167,7 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 	}
 
 	// commands only need to execute if a command is found
-	if len(command) > 0 {
+	if command != "" {
 		// fake "round" robin which is just a random distribution
 		if command == "RR" && len(ips) > 1 {
 			chosenRecordIndex := rand.Intn(len(ips))
@@ -218,8 +218,6 @@ func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 	m.SetReply(r)
 	m.Compress = *compress
 	m.Authoritative = true
-
-	// todo: something if len(m.Question < 1)
 
 	// handle _each_ question
 	for _, q := range m.Question {
@@ -279,9 +277,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// list of domains
-	domains := []string{}
-
 	// split the input domain list
 	fmt.Printf("Input domain string: \"%s\"\n", *domain)
 	domainStringSplit := strings.Split(*domain, ",")
@@ -302,7 +297,7 @@ func main() {
 		}
 		// if the domain is ok keep it otherwise put some errors so that the end-user knows
 		if checkDomain(domainToCheck) {
-			domains = append(domains, domainToCheck)
+			servingDomains = append(servingDomains, domainToCheck)
 		} else {
 			fmt.Printf("The domain \"%s\" is not a valid domain and cannot be served\n", domainToCheck)
 		}
@@ -326,15 +321,12 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	// set the function being used to handle the dns questions
-	for _, servingDomain := range domains {
+	for _, servingDomain := range servingDomains {
 		// log start of service
 		fmt.Printf("Providing service for domain: %s\n", servingDomain)
 		dns.HandleFunc(servingDomain, handleQuestions)
 	}
 	fmt.Print("(All other domains will receive NOZONE response)\n")
-
-	// save the list of domains
-	servingDomains = domains
 
 	// for all other domains just return a not zone response
 	dns.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
