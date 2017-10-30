@@ -229,7 +229,7 @@ func handleQuestions(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 
-	// set return code to NXDOMAIN if no answeres are found
+	// set return code to NXDOMAIN if no answers are found
 	if len(m.Answer) < 1 {
 		m.Rcode = dns.RcodeNameError
 	}
@@ -243,7 +243,7 @@ func serve(netType string) {
 	fmt.Printf("Starting %s server on address: %s ...\n", netType, addr)
 	server := &dns.Server{Addr: addr, Net: netType, TsigSecret: nil}
 	if err := server.ListenAndServe(); err != nil {
-		fmt.Printf("Failed to setup the "+netType+" server: %s\n", err.Error())
+		fmt.Printf("Failed to setup the %s server: %s\n", netType, err.Error())
 	}
 }
 
@@ -321,7 +321,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// seed random number generator
+	// seed random number generator (does not need crypto-strength)
+	// just used for `rr` and `f` commands
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	// set the function being used to handle the dns questions
