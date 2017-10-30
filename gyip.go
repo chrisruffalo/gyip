@@ -55,7 +55,7 @@ func isCommand(checkCommand string) bool {
 // for a given address parses blocks of ips
 // 127.0.0.1.domain.tld - one address ([127.0.0.1])
 // 10.0.0.1.10.0.0.2.domain.tld - two addresses ([10.0.0.1,10.0.0.2])
-// 10.0.0.1,2134:0000:1234:4567:2468:1236:2444:2106 - two addresses ([10.0.0.1,2134:0000:1234:4567:2468:1236:2444:2106])
+// 10.0.0.1.2134:0000:1234:4567:2468:1236:2444:2106.domain.tld - two addresses ([10.0.0.1,2134:0000:1234:4567:2468:1236:2444:2106])
 // this uses the "."s as delimeters and jumps to the next one when parsing
 // when it finds a match it discards that part of the string and keeps loking
 // if the left index reaches the start of the string with no result and the right index is further away than "::"
@@ -87,8 +87,6 @@ func parseIPs(addressString string) []net.IP {
 				if rightIndex > 2 {
 					rightIndex = strings.LastIndex(addressString[0:rightIndex-1], ".")
 					leftIndex = rightIndex - 1
-				} else {
-					break
 				}
 			} else {
 				// use "." as the next jump point
@@ -112,35 +110,17 @@ func parseIPs(addressString string) []net.IP {
 	return responses
 }
 
-func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg, q dns.Question) {
+// adapts the dns question to a response. this method is the bare minimum and allows a unit-testable
+// point within the dns "resolution" pipe
+func frameResponse(questionType uint16, questionName string, currentQuestionDomain string) []dns.RR {
 	var (
-		rr   dns.RR
 		ipV6 net.IP
 		ipV4 net.IP
 	)
 
-	questionName := q.Name
-
-	currentQuestionDomain := ""
-	// find current domain
-	for _, servedDomain := range servingDomains {
-		if strings.HasSuffix(questionName, servedDomain) {
-			currentQuestionDomain = servedDomain
-			break
-		}
-	}
-
-	// if we can't find the served domain that the question is asked for we need to exit (maybe error?)
-	if currentQuestionDomain == "" {
-		return
-	}
-
-	// parse current question
-	fmt.Printf("Question (%s): %s", currentQuestionDomain, q.Name)
-	if q.Qtype == dns.TypeA {
-		fmt.Print(" (A)\n")
-	} else {
-		fmt.Print(" (AAAA)\n")
+	// guards test cases
+	if strings.LastIndex(questionName, currentQuestionDomain) < 0 {
+		return nil
 	}
 
 	// parse off the end domain and trailing dot
@@ -163,7 +143,7 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 
 	// if no ips are available then no domain is found
 	if len(ips) < 1 {
-		return
+		return nil
 	}
 
 	// commands only need to execute if a command is found
@@ -185,6 +165,8 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 		}
 	}
 
+	var records = []dns.RR{}
+
 	// for each IP respond
 	for _, ip := range ips {
 		// set values based on presence of ipv4/ipv6
@@ -193,20 +175,54 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 			ipV6 = ip.To16()
 		}
 
+		// allocate new dns.RR for each loop
+		var rr dns.RR
+
 		// create a record for the given response
-		if q.Qtype == dns.TypeA && ipV4 != nil {
+		if questionType == dns.TypeA && ipV4 != nil {
 			rr = &dns.A{
 				Hdr: dns.RR_Header{Name: questionName, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
 				A:   ipV4,
 			}
-			message.Answer = append(message.Answer, rr)
+			records = append(records, rr)
 		}
 
-		if q.Qtype == dns.TypeAAAA && ipV6 != nil {
+		if questionType == dns.TypeAAAA && ipV6 != nil {
 			rr = &dns.AAAA{
 				Hdr:  dns.RR_Header{Name: questionName, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0},
 				AAAA: ipV6,
 			}
+			records = append(records, rr)
+		}
+	}
+
+	return records
+}
+
+// takes dns-level information and does some work to adapt it to a framed question that can be "resolved"
+func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg, q dns.Question) {
+	questionName := q.Name
+
+	currentQuestionDomain := ""
+	// find current domain
+	for _, servedDomain := range servingDomains {
+		if strings.HasSuffix(questionName, servedDomain) {
+			currentQuestionDomain = servedDomain
+			break
+		}
+	}
+
+	// parse current question
+	fmt.Printf("Question (%s): %s", currentQuestionDomain, q.Name)
+	if q.Qtype == dns.TypeA {
+		fmt.Print(" (A)\n")
+	} else {
+		fmt.Print(" (AAAA)\n")
+	}
+
+	response := frameResponse(q.Qtype, questionName, currentQuestionDomain)
+	if response != nil && len(response) > 0 {
+		for _, rr := range response {
 			message.Answer = append(message.Answer, rr)
 		}
 	}
@@ -278,7 +294,6 @@ func main() {
 	}
 
 	// split the input domain list
-	fmt.Printf("Input domain string: \"%s\"\n", *domain)
 	domainStringSplit := strings.Split(*domain, ",")
 	for _, domainToCheck := range domainStringSplit {
 		// string needs contents or else we just go to next entry
@@ -286,7 +301,7 @@ func main() {
 			continue
 		}
 		// if the string ends with a "," (as if a busted split) remove it
-		if string(domainToCheck[len(domainToCheck)-1]) != "," {
+		if string(domainToCheck[len(domainToCheck)-1]) == "," {
 			domainToCheck = domainToCheck[0 : len(domainToCheck)-1]
 		}
 		// trim whitespace
@@ -304,7 +319,7 @@ func main() {
 	}
 
 	// check domain
-	if len(domains) < 1 {
+	if len(servingDomains) < 1 {
 		// if a bad domain then exit
 		fmt.Print("No valid domains were given. The server will not start.\n")
 		os.Exit(1)
