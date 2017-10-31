@@ -8,11 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/chrisruffalo/gyip/command"
 	"github.com/miekg/dns"
 )
 
@@ -33,24 +33,6 @@ func reverse(ips []net.IP) {
 	for i, j := 0, len(ips)-1; i < j; i, j = i+1, j-1 {
 		ips[i], ips[j] = ips[j], ips[i]
 	}
-}
-
-func isCommand(checkCommand string) bool {
-	// round robin
-	if checkCommand == "RR" {
-		return true
-	}
-
-	// fail percent
-	if checkCommand[0:1] == "F" {
-		i, err := strconv.ParseInt(checkCommand[1:len(checkCommand)], 10, 32)
-		if err != nil || i > 99 {
-			return false
-		}
-		return true
-	}
-
-	return false
 }
 
 // for a given address parses blocks of ips
@@ -115,12 +97,13 @@ func parseIPs(addressString string) []net.IP {
 // point within the dns "resolution" pipe
 func frameResponse(questionType uint16, questionName string, currentQuestionDomain string) []dns.RR {
 	var (
-		ipV6 net.IP
-		ipV4 net.IP
+		records []dns.RR
+		ipV6    net.IP
+		ipV4    net.IP
 	)
 
 	// guards test cases
-	if strings.LastIndex(questionName, currentQuestionDomain) < 0 {
+	if questionName == "" || strings.LastIndex(questionName, currentQuestionDomain) < 0 {
 		return nil
 	}
 
@@ -128,14 +111,13 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 	remainder := questionName[0 : len(questionName)-len(currentQuestionDomain)-1]
 
 	// check for command
-	command := ""
+	var cmd command.Command = command.Noop{}
 	lastDotIndex := strings.LastIndex(remainder, ".")
 	if lastDotIndex > -1 {
 		potentialCommand := strings.ToUpper(remainder[lastDotIndex+1 : len(remainder)])
-		if isCommand(potentialCommand) {
+		cmd = command.New(potentialCommand)
+		if cmd.Type() != command.NOOP {
 			remainder = remainder[0:lastDotIndex]
-			//fmt.Printf("Found command: %s, with remainder: %s\n", potentialCommand, remainder)
-			command = potentialCommand
 		}
 	}
 
@@ -147,38 +129,13 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 		return nil
 	}
 
-	// default ttl for most situations (12hrs)
-	var ttl uint32 = 43200
+	// use transform from found command
+	ips = cmd.Execute(ips)
 
-	// commands only need to execute if a command is found
-	if command != "" {
-		// fake "round" robin which is just a random distribution
-		if command == "RR" && len(ips) > 1 {
-			chosenRecordIndex := rand.Intn(len(ips))
-			ips = ips[chosenRecordIndex : chosenRecordIndex+1]
-			// set low ttl so this can change
-			ttl = 10
-		}
+	// set the ttl based on the executed command (noop = 12hrs)
+	ttl := cmd.TTL()
 
-		// simulate failure command
-		if command[0:1] == "F" {
-			i, err := strconv.ParseInt(command[1:len(command)], 10, 32)
-			// if the parse happens with an error we just resume operations as normal
-			if err == nil {
-				roll := rand.Intn(100)
-				// if the roll exceeds the threshold, then do not respond
-				if roll <= int(i) {
-					ips = []net.IP{}
-				}
-				// set low ttl so this can change
-				ttl = 10
-			}
-		}
-	}
-
-	var records = []dns.RR{}
-
-	// for each IP respond
+	// for each IP create a response record
 	for _, ip := range ips {
 		// set values based on presence of ipv4/ipv6
 		if ip != nil {
