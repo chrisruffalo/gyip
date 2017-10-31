@@ -5,7 +5,7 @@ import "testing"
 func TestCommandFactory(t *testing.T) {
 	data := []struct {
 		command string
-		eType   CommandType
+		eType   Type
 	}{
 		{"", NOOP},
 		{"RR", RR},

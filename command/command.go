@@ -13,14 +13,15 @@ const (
 
 // Command - command interface for available commands
 type Command interface {
-	Type() CommandType
+	Type() Type
 	Execute(input []net.IP) ([]net.IP, uint32)
 }
 
-type CommandType int
+// CommandType - allows inspecting the implementing type of the command without reflection or type checking
+type Type int
 
 const (
-	NOOP CommandType = 1 + iota
+	NOOP Type = 1 + iota
 	RR
 	FAIL
 )

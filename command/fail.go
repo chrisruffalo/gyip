@@ -9,7 +9,7 @@ type Fail struct {
 	failPercent int
 }
 
-func (command Fail) Type() CommandType {
+func (command Fail) Type() Type {
 	return FAIL
 }
 

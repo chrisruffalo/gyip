@@ -8,7 +8,7 @@ import (
 type RoundRobin struct {
 }
 
-func (command RoundRobin) Type() CommandType {
+func (command RoundRobin) Type() Type {
 	return RR
 }
 

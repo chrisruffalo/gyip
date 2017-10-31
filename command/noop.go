@@ -5,7 +5,7 @@ import "net"
 type Noop struct {
 }
 
-func (command Noop) Type() CommandType {
+func (command Noop) Type() Type {
 	return NOOP
 }
 
