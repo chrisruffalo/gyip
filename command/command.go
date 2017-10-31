@@ -6,11 +6,15 @@ import (
 	"strings"
 )
 
+const (
+	defaultTTL      = 43200
+	defaultShortTTL = 10
+)
+
 // Command - command interface for available commands
 type Command interface {
 	Type() CommandType
-	Execute(input []net.IP) []net.IP
-	TTL() uint32
+	Execute(input []net.IP) ([]net.IP, uint32)
 }
 
 type CommandType int
@@ -36,16 +40,14 @@ func New(commandString string) Command {
 		return RoundRobin{}
 	}
 
-	// complex commands
+	// complex command parsing
 	if commandString[0:1] == "F" && (len(commandString) == 2 || len(commandString) == 3) {
 		built := Fail{}
 		i, err := strconv.ParseInt(commandString[1:len(commandString)], 10, 32)
 		if err == nil {
 			built.failPercent = int(i)
-		} else {
-			built.failPercent = -1
+			return built
 		}
-		return built
 	}
 
 	return Noop{}

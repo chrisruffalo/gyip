@@ -9,10 +9,6 @@ func (command Noop) Type() CommandType {
 	return NOOP
 }
 
-func (command Noop) Execute(input []net.IP) []net.IP {
-	return input
-}
-
-func (command Noop) TTL() uint32 {
-	return 43200
+func (command Noop) Execute(input []net.IP) ([]net.IP, uint32) {
+	return input, defaultTTL
 }

@@ -51,6 +51,8 @@ func TestIPResponses(t *testing.T) {
 		{dns.TypeA, "gyip.io", "()())()).10.0.0.1.).gyip.io", []string{"10.0.0.1"}},
 		{dns.TypeA, "gyip.io", ".gyip.io", []string{}},
 		{dns.TypeA, "gyip.io", "*(&()()*#@&#$)(*#_+__)(@_(@()@>........904098......)).gyip.io", []string{}},
+		// with a command but don't inspect command implementation
+		{dns.TypeA, "gyip.io", "10.0.0.1.rr.gyip.io", []string{"10.0.0.1"}},
 		// IPV6
 		{dns.TypeAAAA, "gyip.io", "::1.gyip.io", []string{"::1"}},
 		{dns.TypeAAAA, "wrong.io", "::1.gyip.io", []string{}},

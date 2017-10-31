@@ -129,11 +129,10 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 		return nil
 	}
 
-	// use transform from found command
-	ips = cmd.Execute(ips)
-
-	// set the ttl based on the executed command (noop = 12hrs)
-	ttl := cmd.TTL()
+	// use transform from found command and set the
+	// ttl based on the transformation
+	var ttl uint32
+	ips, ttl = cmd.Execute(ips)
 
 	// for each IP create a response record
 	for _, ip := range ips {
