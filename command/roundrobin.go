@@ -13,7 +13,8 @@ func (command RoundRobin) Type() CommandType {
 }
 
 func (command RoundRobin) Execute(input []net.IP) ([]net.IP, uint32) {
-	if len(input) > 0 {
+
+	if len(input) > 1 {
 		chosenRecordIndex := rand.Intn(len(input))
 		return input[chosenRecordIndex : chosenRecordIndex+1], defaultShortTTL
 	}
