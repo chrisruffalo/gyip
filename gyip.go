@@ -44,7 +44,7 @@ func reverse(ips []net.IP) {
 // if the left index reaches the start of the string with no result and the right index is further away than "::"
 // the right index will jump to the next dot. this prevents screwed up addresses from messing it up and also allows
 // to do things that are easier to read like "10.0.0.1.and.10.5.4.1"
-// one way to hose it up is still something like:
+// one way to confuse the parser is to do something like:
 // 10.27.14.34.45.337.0.1 which will end up with one address: [27.14.34.45] which isn't the intent since 337 is probably a mistake
 func parseIPs(addressString string) []net.IP {
 	// responses
@@ -337,7 +337,7 @@ func splitHosts(hostInput string) []string {
 		// if ip, add to list
 		actualIP := net.ParseIP(hostToCheck)
 		if actualIP != nil {
-			// if someone uses the literal 0.0.0.0 just ust that and stop parsing
+			// if someone uses the literal 0.0.0.0 just use that and stop parsing
 			if actualIP.String() == "0.0.0.0" {
 				return []string{"0.0.0.0"}
 			}
@@ -357,7 +357,9 @@ func splitHosts(hostInput string) []string {
 		}
 	}
 
-	// if no hosts found just bind to everything
+	// if no hosts found just bind to everything (no specified host)
+	// shouldn't happen but it could in theory if no valid hosts are
+	// specified
 	if len(outputHosts) < 1 {
 		return []string{"0.0.0.0"}
 	}

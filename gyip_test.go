@@ -31,38 +31,46 @@ func TestDomainCheck(t *testing.T) {
 func TestIPResponses(t *testing.T) {
 
 	data := []struct {
+		source		   net.IP
 		dnsType        uint16
 		questionDomain string
 		inputQuestion  string
 		outputIPs      []string
 	}{
 		// IPV4
-		{dns.TypeA, "gyip.io", "127.0.0.1.gyip.io", []string{"127.0.0.1"}},
-		{dns.TypeA, "wrong.io", "127.0.0.1.gyip.io", []string{}},
-		{dns.TypeA, "wrong.io", "", []string{}},
-		{dns.TypeA, "", "wrong.io", []string{}},
-		{dns.TypeA, "", "", []string{}},
-		{dns.TypeA, "gyip.io", "alpha.domain.127.0.0.1.gyip.io", []string{"127.0.0.1"}},
-		{dns.TypeA, "gyip.io", "alpha.domain.127.0.0.1.10.0.0.24.gyip.io", []string{"127.0.0.1", "10.0.0.24"}},
-		{dns.TypeA, "gyip.io", "domain.127.0.0.gyip.io", []string{}},
-		{dns.TypeA, "gyip.io", "really.long27.498.&.confusing.483.2383.3838.455.12.127.0.0.1.312.gyip.io", []string{"127.0.0.1"}},
-		{dns.TypeA, "gyip.io", "virthost10.10.1.1.1.gyip.io", []string{"10.1.1.1"}},
-		{dns.TypeA, "gyip.io", "virthost.10.10.1.1.gyip.io", []string{"10.10.1.1"}},
-		{dns.TypeA, "gyip.io", "()())()).10.0.0.1.).gyip.io", []string{"10.0.0.1"}},
-		{dns.TypeA, "gyip.io", ".gyip.io", []string{}},
-		{dns.TypeA, "gyip.io", "*(&()()*#@&#$)(*#_+__)(@_(@()@>........904098......)).gyip.io", []string{}},
+		{nil, dns.TypeA, "gyip.io", "127.0.0.1.gyip.io", []string{"127.0.0.1"}},
+		{nil, dns.TypeA, "wrong.io", "127.0.0.1.gyip.io", []string{}},
+		{nil, dns.TypeA, "wrong.io", "", []string{}},
+		{nil, dns.TypeA, "", "wrong.io", []string{}},
+		{nil, dns.TypeA, "", "", []string{}},
+		{nil, dns.TypeA, "gyip.io", "alpha.domain.127.0.0.1.gyip.io", []string{"127.0.0.1"}},
+		{nil, dns.TypeA, "gyip.io", "alpha.domain.127.0.0.1.10.0.0.24.gyip.io", []string{"127.0.0.1", "10.0.0.24"}},
+		{nil, dns.TypeA, "gyip.io", "domain.127.0.0.gyip.io", []string{}},
+		{nil, dns.TypeA, "gyip.io", "really.long27.498.&.confusing.483.2383.3838.455.12.127.0.0.1.312.gyip.io", []string{"127.0.0.1"}},
+		{nil, dns.TypeA, "gyip.io", "virthost10.10.1.1.1.gyip.io", []string{"10.1.1.1"}},
+		{nil, dns.TypeA, "gyip.io", "virthost.10.10.1.1.gyip.io", []string{"10.10.1.1"}},
+		{nil, dns.TypeA, "gyip.io", "()())()).10.0.0.1.).gyip.io", []string{"10.0.0.1"}},
+		{nil, dns.TypeA, "gyip.io", ".gyip.io", []string{}},
+		{nil, dns.TypeA, "gyip.io", "*(&()()*#@&#$)(*#_+__)(@_(@()@>........904098......)).gyip.io", []string{}},
+		// {nil, dns.TypeA, "gyip.io", "10.27.14.34.45.337.0.1.gyip.io", []string{"27.14.34.45"}}, TODO: fix because it causes a loop
 		// with a command but don't inspect command implementation
-		{dns.TypeA, "gyip.io", "10.0.0.1.rr.gyip.io", []string{"10.0.0.1"}},
+		{nil, dns.TypeA, "gyip.io", "10.0.0.1.rr.gyip.io", []string{"10.0.0.1"}},
 		// IPV6
-		{dns.TypeAAAA, "gyip.io", "::1.gyip.io", []string{"::1"}},
-		{dns.TypeAAAA, "wrong.io", "::1.gyip.io", []string{}},
-		{dns.TypeAAAA, "domain.tld", "10.0.0.1.2134:0000:1234:4567:2468:1236:2444:2106.domain.tld", []string{"10.0.0.1", "2134:0000:1234:4567:2468:1236:2444:2106"}},
-		{dns.TypeAAAA, "domain.tld", "2134:0000:1234:4567:2468:1236:2444:2106.domain.tld", []string{"2134:0000:1234:4567:2468:1236:2444:2106"}},
-		{dns.TypeAAAA, "domain.tld", "2134:0000:1234:4567:2468:1236:2444:2106.2134:0000:1234:4567:2468:1236:2444:2106.domain.tld", []string{"2134:0:1234:4567:2468:1236:2444:2106", "2134:0000:1234:4567:2468:1236:2444:2106"}},
+		{nil, dns.TypeAAAA, "gyip.io", "::1.gyip.io", []string{"::1"}},
+		{nil, dns.TypeAAAA, "wrong.io", "::1.gyip.io", []string{}},
+		{nil, dns.TypeAAAA, "domain.tld", "10.0.0.1.2134:0000:1234:4567:2468:1236:2444:2106.domain.tld", []string{"10.0.0.1", "2134:0000:1234:4567:2468:1236:2444:2106"}},
+		{nil, dns.TypeAAAA, "domain.tld", "2134:0000:1234:4567:2468:1236:2444:2106.domain.tld", []string{"2134:0000:1234:4567:2468:1236:2444:2106"}},
+		{nil, dns.TypeAAAA, "domain.tld", "2134:0000:1234:4567:2468:1236:2444:2106.2134:0000:1234:4567:2468:1236:2444:2106.domain.tld", []string{"2134:0:1234:4567:2468:1236:2444:2106", "2134:0000:1234:4567:2468:1236:2444:2106"}},
+		// echo/reflect
+		{net.ParseIP("::1"), dns.TypeAAAA, "gyip.io", "echo.gyip.io", []string{"::1"}}, // local ipv6
+		{net.ParseIP("127.0.0.1"), dns.TypeA, "gyip.io", "echo.gyip.io", []string{"127.0.0.1"}}, // echo vs reflect 
+		{net.ParseIP("45.13.12.90"), dns.TypeA, "gyip.io", "reflect.gyip.io", []string{"45.13.12.90"}}, // reflect for a non-local ip
+		{net.ParseIP("::1"), dns.TypeA, "gyip.io", "echo.gyip.io", []string{}}, // wrong typ for source ip
+		{nil, dns.TypeA, "wrong.io", "reflect.gyip.io", []string{}}, // reflect but a wrong domain
 	}
 
 	for _, item := range data {
-		records := frameResponse(nil, item.dnsType, item.inputQuestion, item.questionDomain)
+		records := frameResponse(item.source, item.dnsType, item.inputQuestion, item.questionDomain)
 		// face check to see if records have the expected length
 		if len(item.outputIPs) != len(records) {
 			t.Errorf("The query '%s' for domain '%s' did not return the expected number of records (returned %d, expected %d", item.inputQuestion, item.questionDomain, len(records), len(item.outputIPs))
