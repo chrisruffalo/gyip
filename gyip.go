@@ -20,6 +20,7 @@ import (
 var validHostnameRegexMatcher, _ = regexp.Compile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$")
 var servingDomains = []string{}
 
+// command line options (from flag import)
 var (
 	hosts    = flag.String("host", "0.0.0.0", "The host to bind to. Can be a comma-seperated list of hosts. (Ex: \"--host 127.0.0.1,10.0.0.1\")")
 	domain   = flag.String("domain", "", "Required. The hosting domain to provide authority/answers for. Can be a comma-separated list of domains. (Ex: \"--domain gyip.io,gyip.net\")")
@@ -29,6 +30,7 @@ var (
 	compress = flag.Bool("compress", false, "Compress replies, defaults to false")
 )
 
+// reverses the IP array
 func reverse(ips []net.IP) {
 	for i, j := 0, len(ips)-1; i < j; i, j = i+1, j-1 {
 		ips[i], ips[j] = ips[j], ips[i]
