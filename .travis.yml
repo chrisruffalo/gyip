@@ -10,8 +10,8 @@ env:
 
 matrix:
   include:
-  - os: linux
-    dist: fedora
+  - os: fedora
+    dist: 28
     sudo: required
 
 git:
