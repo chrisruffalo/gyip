@@ -25,7 +25,7 @@ script:
 deploy:
   on:
     branch: release
-  before_deployment:
+  before_deploy:
   - dnf install -y git buildah runc podman
   provider: script
   script: bash deploy.sh
