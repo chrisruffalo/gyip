@@ -371,8 +371,8 @@ func splitHosts(hostInput string) []string {
 	}
 
 	// if no hosts found just bind to everything (no specified host)
-	// shouldn't happen but it could in theory if no valid hosts are
-	// specified
+	// shouldn't happen but it could in theory if hosts are specified
+	// but none of them are valid
 	if len(outputHosts) < 1 {
 		return []string{"0.0.0.0"}
 	}

@@ -4,6 +4,8 @@
 which buildah > /dev/null 2>&1
 if [ $? -eq 1 ]; then
 	printf "The 'buildah' executable is required for this build tool.\n"
+	printf "Fedora: 'sudo dnf install -y buildah'"
+	printf "See: 'https://github.com/projectatomic/buildah/blob/master/install.md"
 	exit 1
 fi
 
