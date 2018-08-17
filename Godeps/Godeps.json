@@ -1,0 +1,11 @@
+{
+	"ImportPath": "github.com/chrisruffalo/gyip",
+	"GoVersion": "go1.10",
+	"GodepVersion": "v62",
+	"Deps": [
+		{
+			"ImportPath": "github.com/miekg/dns",
+			"Rev": "f282f80e243cc2bf8f6410c30d821b93b794e168"
+		}
+	]
+}

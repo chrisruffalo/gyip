@@ -3,7 +3,14 @@
 
 # This is a weird way of telling Travis to use the fast container-based test
 # runner instead of the slow VM-based runner.
-sudo: false
+sudo: required
+
+matrix:
+  include:
+    - os: linux
+      dist: fedora
+      sudo: required
+
 language: go
 go:
 - "1.10"
@@ -19,5 +26,3 @@ notifications:
 # test and build
 script: 
 - go test -v -race ./...
-- go build -a -tags netgo -ldflags '-w -extldflags \"-static\"' -o gyip
-
