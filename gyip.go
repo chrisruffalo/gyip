@@ -16,6 +16,11 @@ import (
 	"github.com/miekg/dns"
 )
 
+// pick up version from build
+var	Version = "SNAPSHOT"
+var GitHash = ""
+var LongVersion = Version
+
 // regexp expression to match hostnames
 var validHostnameRegexMatcher, _ = regexp.Compile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$")
 var servingDomains = []string{}
@@ -262,8 +267,14 @@ func serve(netType string, host string) {
 }
 
 func main() {
+	// figure out full version string
+	if "" != GitHash {
+		LongVersion = Version + "-git" + GitHash
+	}	
+
 	// parse options
 	flag.Usage = func() {
+		fmt.Printf("[gyip] - %s\n", LongVersion)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
