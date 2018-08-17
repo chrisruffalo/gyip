@@ -179,6 +179,11 @@ func frameResponse(ip net.IP, questionType uint16, questionName string, currentQ
 	return records
 }
 
+// encapsulates log output in the event that we want to do something else with it (or develop logic to silence it)
+func logQuestion(ip net.IP, currentQuestionDomain string, qName string, qtype string) {
+	fmt.Printf("[%s] ==> (%s): %s (%s)\n", ip, currentQuestionDomain, qName, qtype)	
+}
+
 // takes dns-level information and does some work to adapt it to a framed question that can be "resolved"
 func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg, q dns.Question) {
 	questionName := q.Name
@@ -208,7 +213,9 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 	} else {
 		qtype = "AAAA"
 	}
-	fmt.Printf("[%s] Question (%s): %s (%s)\n", ip, currentQuestionDomain, q.Name, qtype)
+
+	// encapsulate log output
+	logQuestion(ip, currentQuestionDomain, q.Name, qtype)
 
 	response := frameResponse(ip, q.Qtype, questionName, currentQuestionDomain)
 	if response != nil && len(response) > 0 {
