@@ -22,11 +22,10 @@ notifications:
 script:
 - go test -v -race ./...
 
-before_deployment:
-- dnf install -y git buildah runc podman
-
 deploy:
   on:
     branch: release
+  before_deployment:
+  - dnf install -y git buildah runc podman
   provider: script
   script: bash deploy.sh
