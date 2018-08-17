@@ -95,7 +95,7 @@ func parseIPs(addressString string) []net.IP {
 
 // adapts the dns question to a response. this method is the bare minimum and allows a unit-testable
 // point within the dns "resolution" pipe
-func frameResponse(questionType uint16, questionName string, currentQuestionDomain string) []dns.RR {
+func frameResponse(ip net.IP, questionType uint16, questionName string, currentQuestionDomain string) []dns.RR {
 	var (
 		records []dns.RR
 		ipV6    net.IP
@@ -103,36 +103,45 @@ func frameResponse(questionType uint16, questionName string, currentQuestionDoma
 	)
 
 	// guards test cases
-	if questionName == "" || strings.LastIndex(questionName, currentQuestionDomain) < 0 {
+	if "" == questionName || strings.LastIndex(questionName, currentQuestionDomain) < 0 {
 		return nil
 	}
 
 	// parse off the end domain and trailing dot
 	remainder := questionName[0 : len(questionName)-len(currentQuestionDomain)-1]
 
-	// check for command
-	var cmd command.Command = command.Noop{}
-	lastDotIndex := strings.LastIndex(remainder, ".")
-	if lastDotIndex > -1 {
-		potentialCommand := strings.ToUpper(remainder[lastDotIndex+1 : len(remainder)])
-		cmd = command.New(potentialCommand)
-		if cmd.Type() != command.NOOP {
-			remainder = remainder[0:lastDotIndex]
-		}
-	}
-
-	// get list of IPs
-	ips := parseIPs(remainder)
-
-	// if no ips are available then no domain is found
-	if len(ips) < 1 {
-		return nil
-	}
-
-	// use transform from found command and set the
-	// ttl based on the transformation
+	// ttl for response
 	var ttl uint32
-	ips, ttl = cmd.Execute(ips)
+	// ips is am empty array
+	var ips []net.IP
+
+	// check for echo/reflect request
+	if "echo" == strings.ToLower(remainder) || "reflect" == strings.ToLower(remainder) {
+		ips = []net.IP{ip}
+	} else {
+		// check for command
+		var cmd command.Command = command.Noop{}
+		lastDotIndex := strings.LastIndex(remainder, ".")
+		if lastDotIndex > -1 {
+			potentialCommand := strings.ToUpper(remainder[lastDotIndex+1 : len(remainder)])
+			cmd = command.New(potentialCommand)
+			if cmd.Type() != command.NOOP {
+				remainder = remainder[0:lastDotIndex]
+			}
+		}
+
+		// get list of IPs
+		ips = parseIPs(remainder)
+
+		// if no ips are available then no domain is found
+		if len(ips) < 1 {
+			return nil
+		}
+
+		// use transform from found command and set the
+		// ttl based on the transformation
+		ips, ttl = cmd.Execute(ips)
+	}
 
 	// for each IP create a response record
 	for _, ip := range ips {
@@ -179,15 +188,25 @@ func respondToQuestion(w dns.ResponseWriter, request *dns.Msg, message *dns.Msg,
 		}
 	}
 
-	// parse current question
-	fmt.Printf("Question (%s): %s", currentQuestionDomain, q.Name)
-	if q.Qtype == dns.TypeA {
-		fmt.Print(" (A)\n")
-	} else {
-		fmt.Print(" (AAAA)\n")
+	// get ip
+	var ip net.IP
+	if cip, ok := w.RemoteAddr().(*net.UDPAddr); ok {
+		ip = cip.IP
+	}
+	if cip, ok := w.RemoteAddr().(*net.TCPAddr); ok {
+		ip = cip.IP
 	}
 
-	response := frameResponse(q.Qtype, questionName, currentQuestionDomain)
+	// parse log of current question
+	qtype := ""
+	if q.Qtype == dns.TypeA {
+		qtype = "A"
+	} else {
+		qtype = "AAAA"
+	}
+	fmt.Printf("[%s] Question (%s): %s (%s)\n", ip, currentQuestionDomain, q.Name, qtype)
+
+	response := frameResponse(ip, q.Qtype, questionName, currentQuestionDomain)
 	if response != nil && len(response) > 0 {
 		for _, rr := range response {
 			message.Answer = append(message.Answer, rr)

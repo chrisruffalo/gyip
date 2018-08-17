@@ -62,7 +62,7 @@ func TestIPResponses(t *testing.T) {
 	}
 
 	for _, item := range data {
-		records := frameResponse(item.dnsType, item.inputQuestion, item.questionDomain)
+		records := frameResponse(nil, item.dnsType, item.inputQuestion, item.questionDomain)
 		// face check to see if records have the expected length
 		if len(item.outputIPs) != len(records) {
 			t.Errorf("The query '%s' for domain '%s' did not return the expected number of records (returned %d, expected %d", item.inputQuestion, item.questionDomain, len(records), len(item.outputIPs))
