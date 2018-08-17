@@ -89,6 +89,18 @@ Multiple domains:
 ## Advanced Usage
 The GYIP DNS responder was built with the idea that there would be some advanced features and functionality. It supports multiple IP addresses, IPv6, and various special commands. These optionas are intended to provide flexibility in domain resolution for your application needs.
 
+### Reflective / Echo Query
+The gyip server can return what it thinks the IP of the client is (the nearest gateway) which basically functions like a sort of "what's my outside ip". Using this would be helpful if you wanted to connect to something on the edge of your network without necessarily having to hard code that edge. Perhaps this would be useful for multiple sites. Or maybe you just want a DNS-based "what's my ip" query. This functionality is accessed by using the keyword `echo.<domian>` or `reflect.<domain>`. This functionality does not work with other commands.
+```bash
+[]$ dig -p 8053 echo.gyip.io @localhost +short A -b 127.0.0.1
+127.0.0.1
+[]$ dig -p 8053 reflect.gyip.io @localhost +short AAAA
+::1
+[]$ dig -p 8053 echo.gyip.io @localhost +short AAAA -b 127.0.0.1
+::ffff:127.0.0.1
+```
+Note, when using local testing it is sensitive to the source interface. If the source is IPv6 (::1) it would return no response unless you asked for an AAAA record. It does, however, automatically convert IPv4 records for a AAAA record request if that's all that's available. (This is the same behavior as other queries.)
+
 ### Multiple Addresses
 The query can contain multiple IP addresses and will return multiple A records.
 ```bash
