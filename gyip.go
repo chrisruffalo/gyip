@@ -57,13 +57,17 @@ func parseIPs(addressString string) []net.IP {
 	// operate while the left index is still at least 0, meaning there is some string to work with
 	for leftIndex >= 0 {
 		checkString := addressString[leftIndex:rightIndex]
-		//fmt.Printf("check string: %s\n", checkString)
 		checkIP := net.ParseIP(checkString)
 		if checkIP != nil {
 			responses = append(responses, checkIP)
 			rightIndex = leftIndex - 1
 			leftIndex = rightIndex - 1
 		} else {
+			// if the string wasn't parsed into an IP and there is no way we can adjust/jump our indexes
+			// then we need to stop. (fixes a loop when parsing the confusing string from the comment above: '10.27.14.34.45.337.0.1')
+			if strings.LastIndex(addressString[0:rightIndex - 1], ".") < 0 && strings.LastIndex(addressString[0:leftIndex-1], ":") < 0 {
+				break
+			}
 			// if we are already at 0, stop
 			if leftIndex <= 0 {
 				// try and skip something broken on the right

@@ -52,7 +52,7 @@ func TestIPResponses(t *testing.T) {
 		{nil, dns.TypeA, "gyip.io", "()())()).10.0.0.1.).gyip.io", []string{"10.0.0.1"}},
 		{nil, dns.TypeA, "gyip.io", ".gyip.io", []string{}},
 		{nil, dns.TypeA, "gyip.io", "*(&()()*#@&#$)(*#_+__)(@_(@()@>........904098......)).gyip.io", []string{}},
-		// {nil, dns.TypeA, "gyip.io", "10.27.14.34.45.337.0.1.gyip.io", []string{"27.14.34.45"}}, TODO: fix because it causes a loop
+		{nil, dns.TypeA, "gyip.io", "10.27.14.34.45.337.0.1.gyip.io", []string{"27.14.34.45"}}, //TODO: fix because it causes a loop
 		// with a command but don't inspect command implementation
 		{nil, dns.TypeA, "gyip.io", "10.0.0.1.rr.gyip.io", []string{"10.0.0.1"}},
 		// IPV6
