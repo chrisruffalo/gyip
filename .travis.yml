@@ -19,4 +19,4 @@ deploy:
   on:
     branch: release
   provider: script
-  script: bash docker.sh
+  script: bash docker.sh 1
