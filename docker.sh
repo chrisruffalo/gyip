@@ -42,7 +42,7 @@ if [ $PUSH -eq 1 ]; then
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:latest
 	docker push ${TARGET}:${BUILD_TAG}
 	docker push ${TARGET}:${MAJOR_TAG}
-	docker push ${TARGET}:${MAJOR_VER}:${MINOR_VER}
+	docker push ${TARGET}:${MAJOR_VER}.${MINOR_VER}
 	docker push ${TARGET}:${MAJOR_VER}.X
 	docker push ${TARGET}:latest
 fi
