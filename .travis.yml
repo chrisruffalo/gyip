@@ -5,9 +5,7 @@ go:
 
 matrix:
   include:
-  - os: fedora
-    dist: 28
-    sudo: required
+  - OS_TYPE=fedora OS_VERSION=28
 
 git:
   depth: 1
