@@ -68,7 +68,7 @@ BASE_CONTAINER=${BASE_CONTAINER:-"scratch"}
 GYIP_CONTAINER=$(buildah from ${BASE_CONTAINER})
 GYIP_CONTAINER_PATH="gyip/gyip"
 GYIP_CONTAINER_TAG="${GYIP_CONTAINER_PATH}:${BUILD_TAG}"
-buildah config --port 8053 --workingdir "/" --entrypoint '["/gyip"]' $GYIP_CONTAINER
+buildah config --port 8053/tcp --port 8053/udp --workingdir "/" --entrypoint '["/gyip"]' $GYIP_CONTAINER
 buildah copy $GYIP_CONTAINER "$TARGET/gyip" /gyip
 buildah commit $GYIP_CONTAINER $GYIP_CONTAINER_TAG
 # more tags

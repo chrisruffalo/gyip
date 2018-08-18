@@ -3,11 +3,8 @@ language: go
 go:
 - '1.10'
 
-matrix:
-  include:
-  - os: linux
-    dist: fedora
-    sudo: required
+services:
+  - docker
 
 git:
   depth: 1
@@ -18,12 +15,8 @@ notifications:
 script:
 - go test -v -race ./...
 
-before_deploy:
-- cat /etc/redhat-release
-- dnf install -y git buildah runc podman
-
 deploy:
   on:
     branch: release
   provider: script
-  script: bash deploy.sh
+  script: bash docker.sh
