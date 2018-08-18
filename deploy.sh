@@ -16,3 +16,4 @@ podman login ${TARGET_REGISTRY} --username "${DOCKERUSERNAME}" --password "${DOC
 # push to remote
 buildah push gyip/gyip:${BUILD_TAG} ${TARGET_PUSH}${TARGET_REGISTRY}/${TARGET_ORG}/${TARGET_REPO}:${BUILD_TAG}
 buildah push gyip/gyip:${BUILD_TAG} ${TARGET_PUSH}${TARGET_REGISTRY}/${TARGET_ORG}/${TARGET_REPO}:${MAJOR_TAG}
+buildah push gyip/gyip:${BUILD_TAG} ${TARGET_PUSH}${TARGET_REGISTRY}/${TARGET_ORG}/${TARGET_REPO}:latest
