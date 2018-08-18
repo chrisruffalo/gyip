@@ -3,8 +3,11 @@ language: go
 go:
 - '1.10'
 
-env:
-  - OS_TYPE=fedora OS_VERSION=28
+matrix:
+  include:
+  - os: linux
+    dist: fedora
+    sudo: required
 
 git:
   depth: 1
@@ -16,7 +19,8 @@ script:
 - go test -v -race ./...
 
 before_deploy:
- - dnf install -y git buildah runc podman
+- cat /etc/redhat-release
+- dnf install -y git buildah runc podman
 
 deploy:
   on:
