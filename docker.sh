@@ -37,7 +37,7 @@ if [ $PUSH -eq 1 ]; then
 	docker login --username "${DOCKERUSERNAME}" --password "${DOCKERPASSWORD}" ${TARGET_REGISTRY}
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${BUILD_TAG}
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_TAG}
-	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_VER}:${MINOR_VER}
+	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_VER}.${MINOR_VER}
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_VER}.X
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:latest
 	docker push ${TARGET}:${BUILD_TAG}
