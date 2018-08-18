@@ -3,8 +3,7 @@ language: go
 go:
 - '1.10'
 
-matrix:
-  include:
+env:
   - OS_TYPE=fedora OS_VERSION=28
 
 git:
