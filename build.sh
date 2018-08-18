@@ -63,8 +63,9 @@ cp "${MOUNT_DIR}${GOLANG_CONTAINER_ROOT}/gyip" "$TARGET/gyip"
 buildah umount $GOLANG_CONTAINER # remove created mount
 buildah rm $GOLANG_CONTAINER # clean up
 
-# build the actual container by shoving the binary into a minimal alpine container
-GYIP_CONTAINER=$(buildah from scratch)
+# build the actual container by shoving the binary into a minimal container (scratch or alpine)
+BASE_CONTAINER=${BASE_CONTAINER:-"scratch"}
+GYIP_CONTAINER=$(buildah from ${BASE_CONTAINER})
 GYIP_CONTAINER_PATH="gyip/gyip"
 GYIP_CONTAINER_TAG="${GYIP_CONTAINER_PATH}:${BUILD_TAG}"
 buildah config --port 8053 --workingdir "/" --entrypoint '["/gyip"]' $GYIP_CONTAINER
