@@ -8,7 +8,7 @@ In contrast to XIP and NIP: GYIP is _probably_ not production ready. What it pro
 ## Usage
 
 ### Build
-GYIP can be built like any other Go program.
+GYIP can be built like any other Go program. There are ways to set the version and make the build static. The `build.sh` and `docker.sh` scripts go over that in more detail.
 ```bash
 []$ go build ./gyip.io
 ```
@@ -16,8 +16,15 @@ GYIP can be built like any other Go program.
 ### Execution
 The resulting binary requires a domain option to function. This domain will be the root domain for any question you ask. The trailing '.' is required or the underlying domain will not be resolved. By default the server starts listenting on 8053/tcp and 8053/udp. This allows the server to be run as a non-root user.
 ```bash
-[]$ ./gyip --domain my.io.
+[]$ ./gyip --domain my.custom.io
 ```
+
+## Container
+The container is published [here](https://hub.docker.com/r/chrisruffalo/gyip/) and can be used in a way similar to any of the commands given in this guide. The `gyip` command is the default entrypoint and so all additional arguments are passed to it.
+```bash
+[]$ docker run -ti -p 8053:8053/tcp -p 8053:8053/udp chrisruffalo/gyip --domain gyip.io --host 0.0.0.0 --port 8053
+```
+It is important to note that whatever port is forwarded must be forwarded for **both** TCP and UDP protocols for the container to respond to most clients.
 
 ### Queries
 The questions you ask GYIP allow name resolution of IP addresses as subrecords in the domain. (All of the examples in this document assume the use of `gyip.io` as the hosting domain.)
