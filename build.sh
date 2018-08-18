@@ -39,6 +39,9 @@ GITHASH=$(git rev-parse HEAD | head -c6)
 # export output
 export MAJOR_TAG="${VERSION}"
 export BUILD_TAG="${VERSION}-git${GITHASH}"
+export MAJOR_VER="${VERSION%%.*}"
+MINOR_VER="${VERSION#*.}"
+export MINOR_VER="${MINOR_VER%%.*}"
 
 TARGET=$(pwd)/target
 # remove and remake output target
@@ -82,4 +85,4 @@ if [ $PUSH -eq 1 ]; then
 	buildah push $GYIP_CONTAINER_TAG oci:$TARGET/oci-gyip:${BUILD_TAG}
 	buildah push $GYIP_CONTAINER_TAG oci-archive:$TARGET/oci-gyip.tar:${BUILD_TAG}
 	buildah push $GYIP_CONTAINER_TAG docker-archive:$TARGET/docker-gyip.tar:$GYIP_CONTAINER_TAG
-fi
+fi 

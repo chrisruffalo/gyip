@@ -10,6 +10,9 @@ GITHASH=$(git rev-parse HEAD | head -c6)
 # export output
 export MAJOR_TAG="${VERSION}"
 export BUILD_TAG="${VERSION}-git${GITHASH}"
+export MAJOR_VER="${VERSION%%.*}"
+MINOR_VER="${VERSION#*.}"
+export MINOR_VER="${MINOR_VER%%.*}"
 
 TARGET=$(pwd)/target
 # remove and remake output target
@@ -34,7 +37,12 @@ if [ $PUSH -eq 1 ]; then
 	docker login --username "${DOCKERUSERNAME}" --password "${DOCKERPASSWORD}" ${TARGET_REGISTRY}
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${BUILD_TAG}
 	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_TAG}
+	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_VER}:${MINOR_VER}
+	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:${MAJOR_VER}.X
+	docker tag gyip/gyip:${BUILD_TAG} ${TARGET}:latest
 	docker push ${TARGET}:${BUILD_TAG}
 	docker push ${TARGET}:${MAJOR_TAG}
+	docker push ${TARGET}:${MAJOR_VER}:${MINOR_VER}
+	docker push ${TARGET}:${MAJOR_VER}.X
 	docker push ${TARGET}:latest
 fi
